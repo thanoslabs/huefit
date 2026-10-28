@@ -64,7 +64,7 @@ export default function ColourSampling({ image, onBack }: Props) {
         ))}
       </div>
       <div className="mt-5 flex flex-wrap gap-3">
-        {points.map((point, index) => (
+        {points.map((_, index) => (
           <button key={index} type="button" aria-pressed={selected === index} className={`rounded-full border px-4 py-2 ${selected === index ? "border-[#282536] bg-[#282536] text-white" : "border-[#bbb3b1]"}`} onClick={() => setSelected(index)}>
             Sample {index + 1}
           </button>
