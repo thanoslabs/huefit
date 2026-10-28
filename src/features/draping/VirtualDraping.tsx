@@ -206,7 +206,7 @@ export default function VirtualDraping({ image, season }: Props) {
               onPointerUp={dragEnd}
               onPointerCancel={dragEnd}
               onKeyDown={(event) => reorderWithKeyboard(event, index)}
-              className="absolute right-3 top-3 z-10 flex h-10 w-10 cursor-grab touch-none select-none items-center justify-center text-2xl text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#282536] active:cursor-grabbing"
+              className="absolute bottom-1 right-2 z-10 flex h-10 w-10 cursor-grab touch-none select-none items-center justify-center text-2xl text-[#282536] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#282536] active:cursor-grabbing"
             >
               <span aria-hidden="true">⠿</span>
             </button>
