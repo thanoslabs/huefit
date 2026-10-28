@@ -1,4 +1,17 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+
+beforeAll(() => {
+  vi.stubGlobal("ImageData", class {
+    data: Uint8ClampedArray;
+    width: number;
+    height: number;
+    constructor(data: Uint8ClampedArray, width: number, height: number) {
+      this.data = data;
+      this.width = width;
+      this.height = height;
+    }
+  });
+});
 import { applyLighting, DEFAULT_LIGHTING, estimateWhiteBalance, inspectLighting } from "./lighting";
 
 function image(r: number, g: number, b: number): ImageData {
