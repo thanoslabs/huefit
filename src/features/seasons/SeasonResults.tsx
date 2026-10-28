@@ -1,3 +1,4 @@
+import { adjustSeasonRanking, DEFAULT_CHARACTERISTICS, describeFeatures, type CharacteristicChoices } from "./characteristics";
 import { downloadPalette, paletteCsv, paletteSvg } from "../export/paletteExport";
 import VirtualDraping from "../draping/VirtualDraping";
 import { useState } from "react";
@@ -10,9 +11,11 @@ export default function SeasonResults({ colours, image, onBack }: Props) {
   const analysis = rankSeasons(colours);
   const [override, setOverride] = useState<SeasonId | "">("");
   const [comparison, setComparison] = useState<SeasonId | "">("");
+  const [choices, setChoices] = useState<CharacteristicChoices>(DEFAULT_CHARACTERISTICS);
   if (!analysis) return <p role="alert">Not enough valid colour samples. Please return to sampling.</p>;
-  const selected = SEASONS.find((season) => season.id === override) ?? analysis.ranked[0].season;
-  const compared = SEASONS.find((season) => season.id === comparison) ?? analysis.ranked.find(({ season }) => season.id !== selected.id)?.season ?? selected;
+  const ranked = adjustSeasonRanking(analysis.ranked, choices);
+  const selected = SEASONS.find((season) => season.id === override) ?? ranked[0].season;
+  const compared = SEASONS.find((season) => season.id === comparison) ?? ranked.find(({ season }) => season.id !== selected.id)?.season ?? selected;
   return (
     <section className="mx-auto w-full max-w-xl py-10" aria-label="Season exploration">
       <button type="button" className="mb-6 text-sm underline" onClick={onBack}>← Adjust samples</button>
@@ -30,6 +33,33 @@ export default function SeasonResults({ colours, image, onBack }: Props) {
         <button type="button" className="rounded-full border border-[#bbb3b1] px-4 py-2 text-sm" onClick={() => downloadPalette(`${selected.id}.csv`, paletteCsv(selected), "text/csv;charset=utf-8")}>Download CSV</button>
         <button type="button" className="rounded-full border border-[#bbb3b1] px-4 py-2 text-sm" onClick={() => downloadPalette(`${selected.id}.svg`, paletteSvg(selected), "image/svg+xml")}>Download SVG</button>
       </div>
+      <fieldset className="mt-6 rounded-xl border border-[#ded8d2] p-4">
+        <legend className="px-2 font-semibold">Adjust your preferences</legend>
+        <p className="mb-4 text-sm text-[#6d6870]">These choices reorder exploratory suggestions without changing your photo or sampled pixels. Select Automatic to restore the original ranking.</p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {([
+            ["undertone", ["auto", "warm", "cool"]],
+            ["depth", ["auto", "light", "medium", "deep"]],
+            ["chroma", ["auto", "soft", "balanced", "bright"]],
+          ] as const).map(([key, values]) => (
+            <label key={key} className="block text-sm capitalize">
+              {key}
+              <select
+                className="mt-2 w-full rounded-lg border border-[#bbb3b1] bg-white p-2 capitalize"
+                value={choices[key]}
+                onChange={(event) => {
+                  setChoices((current) => ({ ...current, [key]: event.target.value }));
+                  setOverride("");
+                }}
+              >
+                {values.map((value) => <option key={value} value={value}>{value === "auto" ? "Automatic" : value}</option>)}
+              </select>
+            </label>
+          ))}
+        </div>
+        <button type="button" className="mt-4 text-sm underline" onClick={() => { setChoices(DEFAULT_CHARACTERISTICS); setOverride(""); }}>Reset preferences</button>
+        <p className="mt-3 text-xs text-[#6d6870]">{describeFeatures(analysis.features)}</p>
+      </fieldset>
       <label className="mt-6 block text-sm font-medium" htmlFor="season-override">Compare a different season</label>
       <select id="season-override" className="mt-2 w-full rounded-lg border border-[#bbb3b1] bg-white p-3" value={override} onChange={(event) => setOverride(event.target.value as SeasonId | "")}>
         <option value="">Exploratory top match</option>
@@ -37,7 +67,7 @@ export default function SeasonResults({ colours, image, onBack }: Props) {
       </select>
       <h3 className="mt-8 text-lg font-semibold">Other suggested palettes</h3>
       <div className="mt-3 space-y-2">
-        {analysis.ranked.slice(0, 4).map(({ season }, index) => (
+        {ranked.slice(0, 4).map(({ season }, index) => (
           <button key={season.id} type="button" className="flex w-full items-center justify-between rounded-lg border border-[#ded8d2] px-4 py-3 text-left" onClick={() => setOverride(season.id)}>
             <span>{index + 1}. {season.name}</span>
             <span className="flex gap-1">{season.palette.slice(0, 3).map((hex) => <span key={hex} className="h-5 w-5 rounded" style={{ backgroundColor: hex }} />)}</span>
