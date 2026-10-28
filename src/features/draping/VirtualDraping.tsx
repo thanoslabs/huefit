@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import type { Season } from "../seasons/seasons";
 import { initialDrapingPair } from "./draping";
+import { DEFAULT_DRAPE_SETTINGS, drapeStyle, type DrapeSettings, type FabricFinish } from "./drapeStyles";
 
 type Props = { image: ImageData; season: Season };
 
-function Portrait({ image, colour, label, showDrape }: { image: ImageData; colour: string; label: string; showDrape: boolean }) {
+function Portrait({ image, colour, label, showDrape, settings }: { image: ImageData; colour: string; label: string; showDrape: boolean; settings: DrapeSettings }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -23,7 +24,7 @@ function Portrait({ image, colour, label, showDrape }: { image: ImageData; colou
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-x-0 bottom-0 h-[30%] rounded-t-[45%] border-t-4 border-white/40"
-            style={{ backgroundColor: colour }}
+            style={drapeStyle(colour, settings)}
           />
         )}
       </div>
@@ -40,21 +41,67 @@ export default function VirtualDraping({ image, season }: Props) {
   const [left, setLeft] = useState(defaults.left);
   const [right, setRight] = useState(defaults.right);
   const [showDrape, setShowDrape] = useState(true);
+  const [settings, setSettings] = useState<DrapeSettings>(DEFAULT_DRAPE_SETTINGS);
 
   // Remounting this component when the season changes resets both selections.
   return (
     <section className="mt-8" aria-label="Virtual draping comparison">
       <h3 className="text-xl font-semibold">Compare virtual drapes</h3>
       <p className="mt-2 text-sm text-[#6d6870]">
-        Compare two colours against the same portrait. Drapes are illustrative overlays, not clothing segmentation.
+        Compare two colours against the same portrait. Drapes are illustrative overlays, not clothing segmentation. Fabric finishes are visual approximations, not physically accurate simulations.
       </p>
       <label className="mt-4 flex items-center gap-2 text-sm">
         <input type="checkbox" checked={showDrape} onChange={(event) => setShowDrape(event.target.checked)} />
         Show drapes
       </label>
+      <div className="mt-5 grid grid-cols-1 gap-4 rounded-xl border border-[#ded8d2] p-4 sm:grid-cols-2">
+        <label className="block text-sm">
+          Drape opacity: {settings.opacity}%
+          <input
+            type="range"
+            min="20"
+            max="100"
+            step="5"
+            value={settings.opacity}
+            className="mt-2 w-full"
+            onChange={(event) => setSettings((current) => ({ ...current, opacity: Number(event.target.value) }))}
+          />
+        </label>
+        <label className="block text-sm">
+          Portrait coverage: {settings.coverage}%
+          <input
+            type="range"
+            min="15"
+            max="55"
+            step="5"
+            value={settings.coverage}
+            className="mt-2 w-full"
+            onChange={(event) => setSettings((current) => ({ ...current, coverage: Number(event.target.value) }))}
+          />
+        </label>
+        <label className="block text-sm sm:col-span-2">
+          Fabric appearance
+          <select
+            value={settings.finish}
+            className="mt-2 w-full rounded-lg border border-[#bbb3b1] bg-white p-2"
+            onChange={(event) => setSettings((current) => ({ ...current, finish: event.target.value as FabricFinish }))}
+          >
+            <option value="solid">Solid colour</option>
+            <option value="linen">Linen-inspired texture</option>
+            <option value="satin">Satin-inspired sheen</option>
+          </select>
+        </label>
+        <button
+          type="button"
+          className="text-left text-sm underline sm:col-span-2"
+          onClick={() => setSettings(DEFAULT_DRAPE_SETTINGS)}
+        >
+          Reset drape appearance
+        </button>
+      </div>
       <div className="mt-4 grid grid-cols-2 gap-3">
-        <Portrait image={image} colour={left} label="Left portrait comparison" showDrape={showDrape} />
-        <Portrait image={image} colour={right} label="Right portrait comparison" showDrape={showDrape} />
+        <Portrait image={image} colour={left} label="Left portrait comparison" showDrape={showDrape} settings={settings} />
+        <Portrait image={image} colour={right} label="Right portrait comparison" showDrape={showDrape} settings={settings} />
       </div>
       <div className="mt-4 grid grid-cols-2 gap-3">
         {([
