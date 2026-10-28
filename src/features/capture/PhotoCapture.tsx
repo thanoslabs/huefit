@@ -1,3 +1,4 @@
+import LightingCalibration from "../calibration/LightingCalibration";
 import { useEffect, useRef, useState } from "react";
 import { cropToCanvas, validateDimensions, validateImage, type Crop } from "./image";
 
@@ -8,6 +9,7 @@ export default function PhotoCapture({ onClose }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [crop, setCrop] = useState<Crop>({ zoom: 1, x: 0.5, y: 0.5 });
   const [preview, setPreview] = useState<string | null>(null);
+  const [calibrating, setCalibrating] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -30,6 +32,7 @@ export default function PhotoCapture({ onClose }: Props) {
     if (issue) { setError(issue); return; }
     setError(null);
     setPreview(null);
+    setCalibrating(false);
     setCrop({ zoom: 1, x: 0.5, y: 0.5 });
     setUrl(URL.createObjectURL(file));
   }
@@ -48,6 +51,8 @@ export default function PhotoCapture({ onClose }: Props) {
       setError("Unable to crop this image.");
     }
   }
+
+  if (preview && calibrating) return <LightingCalibration source={preview} onBack={() => setCalibrating(false)} />;
 
   return (
     <section className="mx-auto w-full max-w-xl py-12" aria-label="Photo preparation">
@@ -91,8 +96,11 @@ export default function PhotoCapture({ onClose }: Props) {
       {preview && (
         <div className="mt-8">
           <img src={preview} alt="Cropped portrait preview" className="mx-auto w-64 rounded-lg" />
-          <p className="mt-4 text-sm text-[#6d6870]">Photo prepared locally. Lighting calibration is coming in the next PR.</p>
-          <button type="button" className="mt-4 rounded-full border border-[#bbb3b1] px-5 py-3" onClick={() => setPreview(null)}>Adjust crop</button>
+          <p className="mt-4 text-sm text-[#6d6870]">Photo prepared locally. Next, check the lighting before analysis.</p>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button type="button" className="rounded-full bg-[#282536] px-5 py-3 text-white" onClick={() => setCalibrating(true)}>Adjust lighting</button>
+            <button type="button" className="rounded-full border border-[#bbb3b1] px-5 py-3" onClick={() => setPreview(null)}>Adjust crop</button>
+          </div>
         </div>
       )}
     </section>
