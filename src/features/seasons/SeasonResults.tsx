@@ -1,3 +1,4 @@
+import { downloadPalette, paletteCsv, paletteSvg } from "../export/paletteExport";
 import VirtualDraping from "../draping/VirtualDraping";
 import { useState } from "react";
 import { rankSeasons, SEASONS, type SeasonId } from "./seasons";
@@ -24,6 +25,10 @@ export default function SeasonResults({ colours, image, onBack }: Props) {
         <div className="mt-5 flex gap-2" aria-label="Season palette">
           {selected.palette.map((hex) => <span key={hex} className="h-16 flex-1 rounded-lg" title={hex} style={{ backgroundColor: hex }} />)}
         </div>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-3" aria-label="Download selected palette">
+        <button type="button" className="rounded-full border border-[#bbb3b1] px-4 py-2 text-sm" onClick={() => downloadPalette(`${selected.id}.csv`, paletteCsv(selected), "text/csv;charset=utf-8")}>Download CSV</button>
+        <button type="button" className="rounded-full border border-[#bbb3b1] px-4 py-2 text-sm" onClick={() => downloadPalette(`${selected.id}.svg`, paletteSvg(selected), "image/svg+xml")}>Download SVG</button>
       </div>
       <label className="mt-6 block text-sm font-medium" htmlFor="season-override">Compare a different season</label>
       <select id="season-override" className="mt-2 w-full rounded-lg border border-[#bbb3b1] bg-white p-3" value={override} onChange={(event) => setOverride(event.target.value as SeasonId | "")}>
