@@ -1,3 +1,4 @@
+import { cropRect } from "./cropRect";
 import LightingCalibration from "../calibration/LightingCalibration";
 import { useEffect, useRef, useState } from "react";
 import { cropToCanvas, validateDimensions, validateImage, type Crop } from "./image";
@@ -10,6 +11,7 @@ export default function PhotoCapture({ onClose }: Props) {
   const [crop, setCrop] = useState<Crop>({ zoom: 1, x: 0.5, y: 0.5 });
   const [preview, setPreview] = useState<string | null>(null);
   const [calibrating, setCalibrating] = useState(false);
+  const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -34,6 +36,7 @@ export default function PhotoCapture({ onClose }: Props) {
     setPreview(null);
     setCalibrating(false);
     setCrop({ zoom: 1, x: 0.5, y: 0.5 });
+    setDimensions(null);
     setUrl(URL.createObjectURL(file));
   }
 
@@ -68,19 +71,39 @@ export default function PhotoCapture({ onClose }: Props) {
       {error && <p role="alert" className="mt-4 text-red-700">{error}</p>}
       {url && !preview && (
         <div className="mt-8">
+          <div className="relative mx-auto w-fit max-w-full overflow-hidden rounded-lg">
           <img
             ref={imageRef}
             src={url}
             alt="Selected portrait for cropping"
-            className="mx-auto max-h-80 max-w-full rounded-lg object-contain"
+            className="block max-h-80 max-w-full object-contain"
             onLoad={(event) => {
               const img = event.currentTarget;
               const issue = validateDimensions(img.naturalWidth, img.naturalHeight);
               if (issue) { setError(issue); setUrl(null); }
+              else setDimensions({ width: img.naturalWidth, height: img.naturalHeight });
             }}
             onError={() => { setError("This image could not be decoded."); setUrl(null); }}
           />
-          <p className="mt-4 text-sm text-[#6d6870]">Adjust the square crop area using zoom and position controls.</p>
+          {dimensions && (() => {
+            const rect = cropRect(dimensions.width, dimensions.height, crop);
+            return (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute border-2 border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]"
+                style={{
+                  left: `${(rect.left / dimensions.width) * 100}%`,
+                  top: `${(rect.top / dimensions.height) * 100}%`,
+                  width: `${(rect.side / dimensions.width) * 100}%`,
+                  height: `${(rect.side / dimensions.height) * 100}%`,
+                }}
+              >
+                <div className="absolute inset-0 border border-black/30" />
+              </div>
+            );
+          })()}
+          </div>
+          <p className="mt-4 text-sm text-[#6d6870]">The bright square shows exactly what will be cropped. Adjust zoom and position to update it live.</p>
           <label className="mt-4 block">Zoom: {crop.zoom.toFixed(1)}×
             <input className="mt-2 w-full" type="range" min="1" max="3" step="0.1" value={crop.zoom} onChange={(e) => setCrop({ ...crop, zoom: Number(e.target.value) })} />
           </label>
