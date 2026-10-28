@@ -1,3 +1,4 @@
+import ColourSampling from "../analysis/ColourSampling";
 import { useEffect, useRef, useState } from "react";
 import { applyLighting, DEFAULT_LIGHTING, estimateWhiteBalance, inspectLighting, type LightingSettings } from "./lighting";
 
@@ -10,6 +11,7 @@ export default function LightingCalibration({ source, onBack }: Props) {
   const [warnings, setWarnings] = useState<string[]>([]);
   const [showOriginal, setShowOriginal] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [analysisImage, setAnalysisImage] = useState<ImageData | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,6 +53,8 @@ export default function LightingCalibration({ source, onBack }: Props) {
     );
   }
 
+  if (analysisImage) return <ColourSampling image={analysisImage} onBack={() => setAnalysisImage(null)} />;
+
   return (
     <section className="mx-auto w-full max-w-xl py-10" aria-label="Lighting calibration">
       <button type="button" className="mb-6 text-sm underline" onClick={onBack}>← Adjust crop</button>
@@ -67,7 +71,8 @@ export default function LightingCalibration({ source, onBack }: Props) {
         <button type="button" className="rounded-full border border-[#bbb3b1] px-5 py-3" onClick={() => { const original = originalRef.current; if (original) setSettings(estimateWhiteBalance(original)); }}>Auto estimate</button>
         <button type="button" className="rounded-full border border-[#bbb3b1] px-5 py-3" onClick={() => setSettings(DEFAULT_LIGHTING)}>Reset</button>
       </div>
-      <p className="mt-6 text-sm text-[#6d6870]">Your original photo is preserved in memory. Seasonal analysis will be added in a later PR.</p>
+      <button type="button" className="mt-6 rounded-full bg-[#282536] px-5 py-3 text-white" onClick={() => { const original = originalRef.current; if (original) setAnalysisImage(applyLighting(original, settings)); }} disabled={!!error}>Continue to colour sampling</button>
+      <p className="mt-4 text-sm text-[#6d6870]">Your original photo is preserved in memory. Seasonal analysis will be added in a later PR.</p>
     </section>
   );
 }
