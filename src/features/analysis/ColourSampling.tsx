@@ -48,7 +48,7 @@ export default function ColourSampling({ image, onBack }: Props) {
     setPoints((current) => current.map((point, index) => index === selected ? { x, y } : point));
   }
 
-  if (showResults) return <SeasonResults colours={samples.filter((sample): sample is SampleResult => sample !== null).map((sample) => sample.color)} onBack={() => setShowResults(false)} />;
+  if (showResults) return <SeasonResults image={image} colours={samples.filter((sample): sample is SampleResult => sample !== null).map((sample) => sample.color)} onBack={() => setShowResults(false)} />;
 
   return (
     <section className="mx-auto w-full max-w-xl py-10" aria-label="Colour sampling">
