@@ -68,6 +68,7 @@ export default function VirtualDraping({ image, season }: Props) {
     const previous = previousPositions.current;
     if (!previous || !gridRef.current) return;
     previousPositions.current = null;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     gridRef.current.querySelectorAll<HTMLElement>("[data-palette-colour]").forEach((element) => {
       const colour = element.dataset.paletteColour;
       const old = colour ? previous.get(colour) : null;
