@@ -1,10 +1,11 @@
+import VirtualDraping from "../draping/VirtualDraping";
 import { useState } from "react";
 import { rankSeasons, SEASONS, type SeasonId } from "./seasons";
 import type { RGB } from "../analysis/sampling";
 
-type Props = { colours: RGB[]; onBack: () => void };
+type Props = { colours: RGB[]; image: ImageData; onBack: () => void };
 
-export default function SeasonResults({ colours, onBack }: Props) {
+export default function SeasonResults({ colours, image, onBack }: Props) {
   const analysis = rankSeasons(colours);
   const [override, setOverride] = useState<SeasonId | "">("");
   if (!analysis) return <p role="alert">Not enough valid colour samples. Please return to sampling.</p>;
@@ -36,7 +37,8 @@ export default function SeasonResults({ colours, onBack }: Props) {
           </button>
         ))}
       </div>
-      <p className="mt-6 text-sm text-[#6d6870]">The ranking is a starting point for visual comparison, not a confidence score. Virtual draping will make comparisons easier in a future update.</p>
+      <VirtualDraping key={selected.id} image={image} season={selected} />
+      <p className="mt-6 text-sm text-[#6d6870]">The ranking is a starting point for visual comparison, not a confidence score. Compare different colours using the virtual drapes above.</p>
     </section>
   );
 }
