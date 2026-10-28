@@ -1,3 +1,4 @@
+import { cropRect } from "./cropRect";
 export const MAX_IMAGE_BYTES = 15 * 1024 * 1024;
 export const MAX_IMAGE_PIXELS = 24_000_000;
 export const SUPPORTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -27,9 +28,7 @@ export function cropToCanvas(
   canvas.width = canvas.height = outputSize;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas rendering is unavailable.");
-  const side = Math.min(image.naturalWidth, image.naturalHeight) / crop.zoom;
-  const left = Math.max(0, Math.min(image.naturalWidth - side, crop.x * image.naturalWidth - side / 2));
-  const top = Math.max(0, Math.min(image.naturalHeight - side, crop.y * image.naturalHeight - side / 2));
+  const { left, top, side } = cropRect(image.naturalWidth, image.naturalHeight, crop);
   ctx.drawImage(image, left, top, side, side, 0, 0, outputSize, outputSize);
   return canvas;
 }
