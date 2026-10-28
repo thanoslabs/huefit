@@ -19,7 +19,7 @@ export async function detectFaceSamplingPoints(image: ImageData): Promise<FaceRe
   // Model and WASM are fetched as static assets; image pixels never leave the browser.
   const { FaceLandmarker, FilesetResolver } = await import("@mediapipe/tasks-vision");
   const wasm = await FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm",
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm",
   );
   const detector = await FaceLandmarker.createFromOptions(wasm, {
     baseOptions: {
