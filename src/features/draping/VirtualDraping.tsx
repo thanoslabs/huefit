@@ -21,13 +21,24 @@ function Portrait({ image, colour, label, showDrape, settings }: { image: ImageD
     <div className="min-w-0">
       <div className="relative overflow-hidden rounded-xl">
         <canvas ref={canvasRef} role="img" aria-label={label} className="block w-full" />
-        {showDrape && (
+        {showDrape && (settings.direction === "bottom" ? (
           <div
             aria-hidden="true"
             className="pointer-events-none absolute border-t-4 border-white/40"
-            style={{ ...drapeStyle(colour, settings), ...drapePosition(settings.direction) }}
+            style={{ ...drapeStyle(colour, settings), ...drapePosition("bottom", settings.coverage) }}
           />
-        )}
+        ) : (
+          <>
+            {(["left", "right"] as const).map((side) => (
+              <div
+                key={side}
+                aria-hidden="true"
+                className="pointer-events-none absolute border-white/40"
+                style={{ ...drapeStyle(colour, settings), ...drapePosition(settings.direction, settings.coverage, side) }}
+              />
+            ))}
+          </>
+        ))}
       </div>
       <div className="mt-2 flex items-center gap-2 text-sm">
         <span className="h-5 w-5 shrink-0 rounded border" style={{ backgroundColor: colour }} />
