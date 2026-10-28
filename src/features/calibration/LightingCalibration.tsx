@@ -6,10 +6,10 @@ type Props = { source: string; onBack: () => void };
 
 export default function LightingCalibration({ source, onBack }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const originalCanvasRef = useRef<HTMLCanvasElement>(null);
   const originalRef = useRef<ImageData | null>(null);
   const [settings, setSettings] = useState<LightingSettings>(DEFAULT_LIGHTING);
   const [warnings, setWarnings] = useState<string[]>([]);
-  const [showOriginal, setShowOriginal] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [analysisImage, setAnalysisImage] = useState<ImageData | null>(null);
 
@@ -27,6 +27,12 @@ export default function LightingCalibration({ source, onBack }: Props) {
       try {
         const original = ctx.getImageData(0, 0, canvas.width, canvas.height);
         originalRef.current = original;
+        const originalCanvas = originalCanvasRef.current;
+        if (originalCanvas) {
+          originalCanvas.width = original.width;
+          originalCanvas.height = original.height;
+          originalCanvas.getContext("2d")?.putImageData(original, 0, 0);
+        }
         setWarnings(inspectLighting(original).warnings);
         setSettings(estimateWhiteBalance(original));
       } catch { setError("Unable to read photo pixels."); }
@@ -41,8 +47,8 @@ export default function LightingCalibration({ source, onBack }: Props) {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!original || !ctx) return;
-    ctx.putImageData(showOriginal ? original : applyLighting(original, settings), 0, 0);
-  }, [settings, showOriginal, analysisImage]);
+    ctx.putImageData(applyLighting(original, settings), 0, 0);
+  }, [settings, analysisImage]);
 
   function control(label: string, key: keyof LightingSettings, min: number, max: number, step: number) {
     return (
@@ -62,8 +68,16 @@ export default function LightingCalibration({ source, onBack }: Props) {
       <p className="mt-3 text-[#6d6870]">Automatic correction is an estimate. For best results, use even daylight and adjust the image until colours look natural.</p>
       {error && <p role="alert" className="mt-4 text-red-700">{error}</p>}
       {warnings.map((warning) => <p role="status" key={warning} className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{warning}</p>)}
-      <canvas ref={canvasRef} className="mx-auto mt-6 max-h-96 w-full rounded-lg object-contain" aria-label={showOriginal ? "Original photo" : "Lighting-adjusted photo"} role="img" />
-      <label className="mt-4 flex items-center gap-2"><input type="checkbox" checked={showOriginal} onChange={(e) => setShowOriginal(e.target.checked)} /> Show original</label>
+      <div className="mt-6 grid grid-cols-2 gap-3" aria-label="Original and adjusted photo comparison">
+        <figure className="min-w-0">
+          <figcaption className="mb-2 text-sm font-semibold">Original</figcaption>
+          <canvas ref={originalCanvasRef} className="block w-full rounded-lg" aria-label="Original photo" role="img" />
+        </figure>
+        <figure className="min-w-0">
+          <figcaption className="mb-2 text-sm font-semibold">Adjusted</figcaption>
+          <canvas ref={canvasRef} className="block w-full rounded-lg" aria-label="Lighting-adjusted photo" role="img" />
+        </figure>
+      </div>
       {control("Exposure (EV)", "exposure", -2, 2, 0.1)}
       {control("Temperature", "temperature", -100, 100, 1)}
       {control("Tint", "tint", -100, 100, 1)}
