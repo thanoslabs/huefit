@@ -1,8 +1,8 @@
 import { moveColour } from "./reorder";
 import { FABRICS } from "./fabrics";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent, type KeyboardEvent } from "react";
 import type { Season } from "../seasons/seasons";
-import { DEFAULT_DRAPE_SETTINGS, drapeStyle, type DrapeSettings, type FabricFinish } from "./drapeStyles";
+import { DEFAULT_DRAPE_SETTINGS, drapeStyle, drapePosition, type DrapeSettings, type FabricFinish, type DrapeDirection } from "./drapeStyles";
 
 type Props = { image: ImageData; season: Season };
 
@@ -21,13 +21,24 @@ function Portrait({ image, colour, label, showDrape, settings }: { image: ImageD
     <div className="min-w-0">
       <div className="relative overflow-hidden rounded-xl">
         <canvas ref={canvasRef} role="img" aria-label={label} className="block w-full" />
-        {showDrape && (
+        {showDrape && (settings.direction === "bottom" ? (
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-[30%] rounded-t-[45%] border-t-4 border-white/40"
-            style={drapeStyle(colour, settings)}
+            className="pointer-events-none absolute border-t-4 border-white/40"
+            style={{ ...drapeStyle(colour, settings), ...drapePosition("bottom", settings.coverage) }}
           />
-        )}
+        ) : (
+          <>
+            {(["left", "right"] as const).map((side) => (
+              <div
+                key={side}
+                aria-hidden="true"
+                className="pointer-events-none absolute border-white/40"
+                style={{ ...drapeStyle(colour, settings), ...drapePosition(settings.direction, settings.coverage, side) }}
+              />
+            ))}
+          </>
+        ))}
       </div>
       <div className="mt-2 flex items-center gap-2 text-sm">
         <span className="h-5 w-5 shrink-0 rounded border" style={{ backgroundColor: colour }} />
@@ -40,6 +51,44 @@ function Portrait({ image, colour, label, showDrape, settings }: { image: ImageD
 export default function VirtualDraping({ image, season }: Props) {
   const [colours, setColours] = useState<string[]>(() => [...season.palette]);
   const dragIndex = useRef<number | null>(null);
+  const [dragging, setDragging] = useState<number | null>(null);
+  const [dropIndex, setDropIndex] = useState<number | null>(null);
+
+  function dragStart(event: PointerEvent<HTMLButtonElement>, index: number) {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragIndex.current = index;
+    setDragging(index);
+    setDropIndex(index);
+  }
+
+  function dragMove(event: PointerEvent<HTMLButtonElement>) {
+    if (dragIndex.current === null) return;
+    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest("[data-palette-index]");
+    if (target instanceof HTMLElement) {
+      const index = Number(target.dataset.paletteIndex);
+      if (Number.isInteger(index)) setDropIndex(index);
+    }
+  }
+
+  function dragEnd(event: PointerEvent<HTMLButtonElement>) {
+    const from = dragIndex.current;
+    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest("[data-palette-index]");
+    const to = target instanceof HTMLElement ? Number(target.dataset.paletteIndex) : null;
+    if (from !== null && to !== null && Number.isInteger(to)) {
+      setColours((current) => moveColour(current, from, to));
+    }
+    dragIndex.current = null;
+    setDragging(null);
+    setDropIndex(null);
+  }
+
+  function reorderWithKeyboard(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+    event.preventDefault();
+    setColours((current) => moveColour(current, index, index + (event.key === "ArrowLeft" ? -1 : 1)));
+  }
   const [showDrape, setShowDrape] = useState(true);
   const [settings, setSettings] = useState<DrapeSettings>(DEFAULT_DRAPE_SETTINGS);
 
@@ -80,6 +129,18 @@ export default function VirtualDraping({ image, season }: Props) {
           />
         </label>
         <label className="block text-sm sm:col-span-2">
+          Drape placement
+          <select
+            value={settings.direction}
+            className="mt-2 w-full rounded-lg border border-[#bbb3b1] bg-white p-2"
+            onChange={(event) => setSettings((current) => ({ ...current, direction: event.target.value as DrapeDirection }))}
+          >
+            <option value="bottom">From the bottom</option>
+            <option value="sides">From the sides</option>
+            <option value="angled">From the sides at an angle</option>
+          </select>
+        </label>
+        <label className="block text-sm sm:col-span-2">
           Fabric appearance
           <select
             value={settings.finish}
@@ -98,34 +159,27 @@ export default function VirtualDraping({ image, season }: Props) {
           Reset drape appearance
         </button>
       </div>
-      <p className="mt-4 text-sm text-[#6d6870]">All {colours.length} palette colours are shown. Drag cards to rearrange them, or use the arrow buttons with a keyboard.</p>
+      <p className="mt-4 text-sm text-[#6d6870]">All {colours.length} palette colours are shown. Drag the grip on any card to rearrange it, including on touchscreens. Focus a grip and use left/right arrow keys for keyboard access.</p>
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
         {colours.map((colour, index) => (
           <div
             key={colour}
-            draggable
-            onDragStart={(event) => {
-              dragIndex.current = index;
-              event.dataTransfer.effectAllowed = "move";
-              event.dataTransfer.setData("text/plain", String(index));
-            }}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => {
-              event.preventDefault();
-              const from = dragIndex.current;
-              if (from !== null) setColours((current) => moveColour(current, from, index));
-              dragIndex.current = null;
-            }}
-            onDragEnd={() => { dragIndex.current = null; }}
-            className="min-w-0 rounded-xl border border-[#ded8d2] p-2"
+            data-palette-index={index}
+            className={`min-w-0 rounded-xl border p-2 transition-colors ${dropIndex === index && dragging !== null ? "border-[#282536] bg-[#f3ede8]" : "border-[#ded8d2]"} ${dragging === index ? "opacity-60" : ""}`}
           >
             <Portrait image={image} colour={colour} label={`Portrait with drape ${colour}`} showDrape={showDrape} settings={settings} />
-            <div className="mt-2 flex items-center justify-between gap-1">
+            <div className="mt-2 flex items-center justify-between gap-2">
               <span className="text-xs text-[#6d6870]">Preview {index + 1}</span>
-              <div className="flex gap-1">
-                <button type="button" disabled={index === 0} aria-label={`Move ${colour} left`} className="rounded border px-2 py-1 text-sm disabled:opacity-30" onClick={() => setColours((current) => moveColour(current, index, index - 1))}>←</button>
-                <button type="button" disabled={index === colours.length - 1} aria-label={`Move ${colour} right`} className="rounded border px-2 py-1 text-sm disabled:opacity-30" onClick={() => setColours((current) => moveColour(current, index, index + 1))}>→</button>
-              </div>
+              <button
+                type="button"
+                aria-label={`Drag to reorder ${colour}; use left or right arrow keys to move`}
+                onPointerDown={(event) => dragStart(event, index)}
+                onPointerMove={dragMove}
+                onPointerUp={dragEnd}
+                onPointerCancel={() => { dragIndex.current = null; setDragging(null); setDropIndex(null); }}
+                onKeyDown={(event) => reorderWithKeyboard(event, index)}
+                className="cursor-grab touch-none select-none rounded-lg border border-[#bbb3b1] px-3 py-1 text-lg active:cursor-grabbing"
+              >⠿</button>
             </div>
           </div>
         ))}
