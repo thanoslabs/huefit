@@ -5,7 +5,7 @@
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-blue?logo=github)](https://thanoslabs.github.io/huefit/)
 [![License: MIT](https://img.shields.io/github/license/thanoslabs/huefit)](LICENSE)
 
-**HueFit** is a privacy-first, browser-only personal colour analysis app. Discover seasonal palettes, calibrate lighting, and compare clothing colours and fabrics without sending your photo to a server.
+**Live application:** https://thanoslabs.github.io/huefit/ (available after Pages is enabled and the deployment succeeds).\n\n**HueFit** is a privacy-first, browser-only personal colour analysis app. Discover seasonal palettes, calibrate lighting, and compare clothing colours and fabrics without sending your photo to a server.
 
 > Status: initial application shell. Photo analysis, calibration, draping and export are planned, not implemented yet.
 
@@ -29,4 +29,4 @@ Validation: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm ru
 
 See [requirements](docs/requirements.md), [architecture](docs/architecture.md), and [backlog](docs/backlog.md).
 
-Documentation is published using [nebula-md](https://github.com/thanoslabs/nebula-md). Releases follow bare `X.Y.Z` SemVer tags.
+Documentation source lives in [docs/](docs/). The former nebula-md Pages deployment has been replaced by the application deployment; documentation is not currently published as a separate site. Releases follow bare `X.Y.Z` SemVer tags.
