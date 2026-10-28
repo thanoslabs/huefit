@@ -1,4 +1,5 @@
-export type FabricFinish = "solid" | "linen" | "satin";
+import { fabricPattern, type Fabric } from "./fabrics";
+export type FabricFinish = Fabric;
 
 export type DrapeSettings = {
   opacity: number;
@@ -20,12 +21,7 @@ export function clampPercent(value: number): number {
 export function drapeStyle(colour: string, settings: DrapeSettings) {
   const opacity = clampPercent(settings.opacity) / 100;
   const coverage = clampPercent(settings.coverage);
-  const pattern =
-    settings.finish === "linen"
-      ? "repeating-linear-gradient(90deg, transparent 0px, rgba(255,255,255,0.12) 1px, transparent 3px, transparent 7px)"
-      : settings.finish === "satin"
-        ? "linear-gradient(115deg, rgba(255,255,255,0.35), transparent 35%, rgba(0,0,0,0.12) 65%, rgba(255,255,255,0.2))"
-        : "none";
+  const pattern = fabricPattern(settings.finish);
 
   return {
     backgroundColor: colour,
