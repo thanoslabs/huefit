@@ -50,38 +50,34 @@ function Portrait({ image, colour, label, showDrape, settings }: { image: ImageD
 
 export default function VirtualDraping({ image, season }: Props) {
   const [colours, setColours] = useState<string[]>(() => [...season.palette]);
-  const dragIndex = useRef<number | null>(null);
-  const [dragging, setDragging] = useState<number | null>(null);
-  const [dropIndex, setDropIndex] = useState<number | null>(null);
+  const activeColour = useRef<string | null>(null);
+  const [dragging, setDragging] = useState<string | null>(null);
 
-  function dragStart(event: PointerEvent<HTMLButtonElement>, index: number) {
+  function dragStart(event: PointerEvent<HTMLButtonElement>, colour: string) {
     if (event.pointerType === "mouse" && event.button !== 0) return;
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
-    dragIndex.current = index;
-    setDragging(index);
-    setDropIndex(index);
+    activeColour.current = colour;
+    setDragging(colour);
   }
 
   function dragMove(event: PointerEvent<HTMLButtonElement>) {
-    if (dragIndex.current === null) return;
-    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest("[data-palette-index]");
-    if (target instanceof HTMLElement) {
-      const index = Number(target.dataset.paletteIndex);
-      if (Number.isInteger(index)) setDropIndex(index);
-    }
+    const colour = activeColour.current;
+    if (!colour) return;
+    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest("[data-palette-colour]");
+    if (!(target instanceof HTMLElement)) return;
+    const destination = target.dataset.paletteColour;
+    if (!destination || destination === colour) return;
+    setColours((current) => {
+      const from = current.indexOf(colour);
+      const to = current.indexOf(destination);
+      return moveColour(current, from, to);
+    });
   }
 
-  function dragEnd(event: PointerEvent<HTMLButtonElement>) {
-    const from = dragIndex.current;
-    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest("[data-palette-index]");
-    const to = target instanceof HTMLElement ? Number(target.dataset.paletteIndex) : null;
-    if (from !== null && to !== null && Number.isInteger(to)) {
-      setColours((current) => moveColour(current, from, to));
-    }
-    dragIndex.current = null;
+  function dragEnd() {
+    activeColour.current = null;
     setDragging(null);
-    setDropIndex(null);
   }
 
   function reorderWithKeyboard(event: KeyboardEvent<HTMLButtonElement>, index: number) {
@@ -159,28 +155,28 @@ export default function VirtualDraping({ image, season }: Props) {
           Reset drape appearance
         </button>
       </div>
-      <p className="mt-4 text-sm text-[#6d6870]">All {colours.length} palette colours are shown. Drag the grip on any card to rearrange it, including on touchscreens. Focus a grip and use left/right arrow keys for keyboard access.</p>
+      <p className="mt-4 text-sm text-[#6d6870]">All {colours.length} palette colours are shown. Drag the grip on a preview to rearrange the palette. Other previews shift into place as you drag. Use left/right arrow keys on a focused grip for keyboard access.</p>
       <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
         {colours.map((colour, index) => (
           <div
             key={colour}
-            data-palette-index={index}
-            className={`min-w-0 rounded-xl border p-2 transition-colors ${dropIndex === index && dragging !== null ? "border-[#282536] bg-[#f3ede8]" : "border-[#ded8d2]"} ${dragging === index ? "opacity-60" : ""}`}
+            data-palette-colour={colour}
+            className={`relative min-w-0 rounded-xl border border-[#ded8d2] p-2 transition-[transform,background-color,box-shadow] duration-150 ${dragging === colour ? "z-10 scale-[1.03] bg-[#f3ede8] shadow-lg" : ""}`}
           >
             <Portrait image={image} colour={colour} label={`Portrait with drape ${colour}`} showDrape={showDrape} settings={settings} />
-            <div className="mt-2 flex items-center justify-between gap-2">
-              <span className="text-xs text-[#6d6870]">Preview {index + 1}</span>
-              <button
-                type="button"
-                aria-label={`Drag to reorder ${colour}; use left or right arrow keys to move`}
-                onPointerDown={(event) => dragStart(event, index)}
-                onPointerMove={dragMove}
-                onPointerUp={dragEnd}
-                onPointerCancel={() => { dragIndex.current = null; setDragging(null); setDropIndex(null); }}
-                onKeyDown={(event) => reorderWithKeyboard(event, index)}
-                className="cursor-grab touch-none select-none rounded-lg border border-[#bbb3b1] px-3 py-1 text-lg active:cursor-grabbing"
-              >⠿</button>
-            </div>
+            <span className="mt-2 block text-xs text-[#6d6870]">Preview {index + 1}</span>
+            <button
+              type="button"
+              aria-label={`Reorder ${colour}; drag or use left and right arrow keys`}
+              onPointerDown={(event) => dragStart(event, colour)}
+              onPointerMove={dragMove}
+              onPointerUp={dragEnd}
+              onPointerCancel={dragEnd}
+              onKeyDown={(event) => reorderWithKeyboard(event, index)}
+              className="absolute right-3 top-3 z-10 flex h-10 w-10 cursor-grab touch-none select-none items-center justify-center text-2xl text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#282536] active:cursor-grabbing"
+            >
+              <span aria-hidden="true">⠿</span>
+            </button>
           </div>
         ))}
       </div>
