@@ -34,13 +34,20 @@ export function drapeStyle(colour: string, settings: DrapeSettings) {
   };
 }
 
-export function drapePosition(direction: DrapeDirection) {
-  switch (direction) {
-    case "sides":
-      return { inset: "0", height: "100%", clipPath: "polygon(0 0, 24% 0, 24% 100%, 0 100%, 76% 0, 100% 0, 100% 100%, 76% 100%)", borderRadius: "0" };
-    case "angled":
-      return { inset: "0", height: "100%", clipPath: "polygon(0 12%, 40% 100%, 0 100%, 100% 12%, 100% 100%, 60% 100%)", borderRadius: "0" };
-    default:
-      return { left: "0", right: "0", bottom: "0", borderRadius: "45% 45% 0 0" };
+export function drapePosition(direction: DrapeDirection, coverage: number, side: "left" | "right" = "left") {
+  if (direction === "bottom") {
+    return { left: "0", right: "0", bottom: "0", borderRadius: "45% 45% 0 0" };
   }
+  const width = Math.min(50, Math.max(15, coverage));
+  return {
+    top: "0",
+    bottom: "0",
+    width: `${width}%`,
+    height: "100%",
+    left: side === "left" ? "0" : undefined,
+    right: side === "right" ? "0" : undefined,
+    clipPath: direction === "angled"
+      ? (side === "left" ? "polygon(0 0, 100% 100%, 0 100%)" : "polygon(100% 0, 100% 100%, 0 100%)")
+      : undefined,
+  };
 }
