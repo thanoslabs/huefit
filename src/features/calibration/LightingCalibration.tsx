@@ -72,7 +72,7 @@ export default function LightingCalibration({ source, onBack }: Props) {
         <button type="button" className="rounded-full border border-[#bbb3b1] px-5 py-3" onClick={() => setSettings(DEFAULT_LIGHTING)}>Reset</button>
       </div>
       <button type="button" className="mt-6 rounded-full bg-[#282536] px-5 py-3 text-white" onClick={() => { const original = originalRef.current; if (original) setAnalysisImage(applyLighting(original, settings)); }} disabled={!!error}>Continue to colour sampling</button>
-      <p className="mt-4 text-sm text-[#6d6870]">Your original photo is preserved in memory. Seasonal analysis will be added in a later PR.</p>
+      <p className="mt-4 text-sm text-[#6d6870]">Your original photo is preserved in memory. The resulting palette is an exploratory styling suggestion, not a validated diagnosis.</p>
     </section>
   );
 }

@@ -54,7 +54,7 @@ export default function ColourSampling({ image, onBack }: Props) {
     <section className="mx-auto w-full max-w-xl py-10" aria-label="Colour sampling">
       <button type="button" className="mb-6 text-sm underline" onClick={onBack}>← Adjust lighting</button>
       <h2 className="text-3xl font-semibold">Sample your colours</h2>
-      <p className="mt-3 text-[#6d6870]">Select a sample point, then click a clear area of skin in the photo to reposition it. Avoid makeup, highlights and shadows. Automatic suggestions are optional and can always be adjusted.</p>
+      <p className="mt-3 text-[#6d6870]">Select a sample point, then click a clear area of skin in the photo to reposition it. For keyboard use, adjust the selected point with the position sliders below. Avoid makeup, highlights and shadows. Automatic suggestions are optional and can always be adjusted.</p>
       <button type="button" disabled={detecting} onClick={() => void autoDetect()} className="mt-5 rounded-full bg-[#282536] px-5 py-3 text-white disabled:opacity-50">{detecting ? "Detecting…" : "Detect face automatically"}</button>
       <p role="status" className="mt-3 text-sm text-[#6d6870]">{detectionMessage}</p>
       <div className="relative mx-auto mt-6 w-full max-w-md">
@@ -70,6 +70,25 @@ export default function ColourSampling({ image, onBack }: Props) {
           </button>
         ))}
       </div>
+      <fieldset className="mt-5 rounded-lg border border-[#ded8d2] p-4">
+        <legend className="px-2 text-sm font-semibold">Selected sample {selected + 1} position</legend>
+        {(["x", "y"] as const).map((axis) => (
+          <label key={axis} className="mt-3 block text-sm">
+            {axis === "x" ? "Horizontal" : "Vertical"}: {Math.round(points[selected][axis] * 100)}%
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              className="mt-2 w-full"
+              value={Math.round(points[selected][axis] * 100)}
+              onChange={(event) => setPoints((current) => current.map((point, index) =>
+                index === selected ? { ...point, [axis]: Number(event.target.value) / 100 } : point
+              ))}
+            />
+          </label>
+        ))}
+      </fieldset>
       <div className="mt-5 grid grid-cols-3 gap-3">
         {samples.map((sample, index) => (
           <div key={index} className="text-center text-sm">
