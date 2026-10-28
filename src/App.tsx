@@ -6,7 +6,8 @@ const colours = ["#b87868", "#c6a178", "#d5bf8e", "#829482", "#637c91", "#8c718f
 export default function App() {
   const [capturing, setCapturing] = useState(false);
   return (
-    <main className="min-h-screen bg-[#f7f4ef] text-[#282536]">
+    <main id="main-content" className="min-h-screen bg-[#f7f4ef] text-[#282536]">
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:bg-white focus:p-3">Skip to main content</a>
       <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-8 sm:px-10">
         <header className="flex items-center justify-between">
           <a className="text-2xl font-semibold tracking-tight" href={import.meta.env.BASE_URL} aria-label="HueFit home">huefit<span className="text-[#b87868]">.</span></a>
