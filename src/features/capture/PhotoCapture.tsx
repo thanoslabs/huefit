@@ -11,10 +11,13 @@ export default function PhotoCapture({ onClose }: Props) {
   const [crop, setCrop] = useState<Crop>({ zoom: 1, x: 0.5, y: 0.5 });
   const [preview, setPreview] = useState<string | null>(null);
   const [calibrating, setCalibrating] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraBusy, setCameraBusy] = useState(false);
   const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const cameraRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const dragRef = useRef<{ mode: "move" | "resize"; x: number; y: number; crop: Crop } | null>(null);
 
   useEffect(() => {
@@ -29,6 +32,61 @@ export default function PhotoCapture({ onClose }: Props) {
     };
   }, [preview]);
 
+  function stopCamera() {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+    setCameraOpen(false);
+  }
+
+  useEffect(() => () => {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+  }, []);
+
+  useEffect(() => {
+    if (cameraOpen && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      void videoRef.current.play().catch(() => setError("Unable to start the camera preview."));
+    }
+  }, [cameraOpen]);
+
+  async function openCamera() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError("Camera access is unavailable in this browser. Use Upload photo instead.");
+      return;
+    }
+    setCameraBusy(true);
+    setError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: "user" } });
+      streamRef.current = stream;
+      setCameraOpen(true);
+    } catch {
+      setError("Camera access was blocked or no camera is available. Check browser permissions or upload a photo.");
+    } finally {
+      setCameraBusy(false);
+    }
+  }
+
+  function takePhoto() {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth || !video.videoHeight) {
+      setError("Camera is not ready yet. Try again in a moment.");
+      return;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const context = canvas.getContext("2d");
+    if (!context) { setError("Unable to capture the camera image."); return; }
+    context.drawImage(video, 0, 0);
+    canvas.toBlob((blob) => {
+      if (!blob) { setError("Unable to capture the photo."); return; }
+      stopCamera();
+      selectFile(new File([blob], "camera-photo.jpg", { type: "image/jpeg" }));
+    }, "image/jpeg", 0.92);
+  }
+
   function selectFile(file?: File) {
     if (!file) return;
     const issue = validateImage(file);
@@ -36,6 +94,7 @@ export default function PhotoCapture({ onClose }: Props) {
     setError(null);
     setPreview(null);
     setCalibrating(false);
+    stopCamera();
     setCrop({ zoom: 1, x: 0.5, y: 0.5 });
     setDimensions(null);
     setUrl(URL.createObjectURL(file));
@@ -93,6 +152,7 @@ export default function PhotoCapture({ onClose }: Props) {
       canvas.toBlob((blob) => {
         if (!blob) { setError("Unable to prepare the photo."); return; }
         setPreview(URL.createObjectURL(blob));
+        setCalibrating(true);
         setError(null);
       }, "image/jpeg", 0.9);
     } catch {
@@ -104,17 +164,27 @@ export default function PhotoCapture({ onClose }: Props) {
 
   return (
     <section className="mx-auto w-full max-w-xl py-12" aria-label="Photo preparation">
-      <button className="mb-8 text-sm underline" onClick={onClose} type="button">← Back</button>
-      <h1 className="text-3xl font-semibold">Prepare your photo</h1>
+      <button className="mb-8 text-sm underline" onClick={() => { stopCamera(); onClose(); }} type="button">← Back</button>
+      <p className="text-sm font-medium text-[#756f78]">Step 1 of 3 · Crop your photo</p>
+      <h1 className="mt-2 text-3xl font-semibold">Prepare your photo</h1>
       <p className="mt-3 text-[#6d6870]">Choose a clear, evenly lit portrait. Your photo stays in this browser session.</p>
       <div className="mt-6 flex flex-wrap gap-3">
         <button className="rounded-full bg-[#282536] px-5 py-3 text-white" onClick={() => inputRef.current?.click()} type="button">Upload photo</button>
-        <button className="rounded-full border border-[#bbb3b1] px-5 py-3" onClick={() => cameraRef.current?.click()} type="button">Take photo</button>
+        <button className="rounded-full border border-[#bbb3b1] px-5 py-3" onClick={() => void openCamera()} disabled={cameraBusy} type="button">{cameraBusy ? "Opening camera…" : "Take photo"}</button>
       </div>
       <input ref={inputRef} className="sr-only" aria-label="Upload portrait" type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => { selectFile(event.target.files?.[0]); event.target.value = ""; }} />
-      <input ref={cameraRef} className="sr-only" aria-label="Capture portrait" type="file" accept="image/jpeg,image/png,image/webp" capture="user" onChange={(event) => { selectFile(event.target.files?.[0]); event.target.value = ""; }} />
+      {cameraOpen && (
+        <div className="mt-6 rounded-xl border border-[#ded8d2] p-3">
+          <p className="mb-3 text-sm font-semibold">Camera preview</p>
+          <video ref={videoRef} autoPlay playsInline muted className="mx-auto max-h-96 w-full rounded-lg bg-black object-contain" aria-label="Live camera preview" />
+          <div className="mt-4 flex flex-wrap gap-3">
+            <button type="button" className="rounded-full bg-[#282536] px-5 py-3 text-white" onClick={takePhoto}>Capture photo</button>
+            <button type="button" className="rounded-full border border-[#bbb3b1] px-5 py-3" onClick={stopCamera}>Cancel camera</button>
+          </div>
+        </div>
+      )}
       {error && <p role="alert" className="mt-4 text-red-700">{error}</p>}
-      {url && !preview && (
+      {url && !preview && !cameraOpen && (
         <div className="mt-8">
           <div className="relative mx-auto w-fit max-w-full overflow-hidden rounded-lg">
           <img
@@ -179,15 +249,15 @@ export default function PhotoCapture({ onClose }: Props) {
           </div>
           <p className="mt-4 text-sm text-[#6d6870]">Drag the square to move the crop. Drag its bottom-right handle to resize. Keyboard: focus the square and use arrow keys to move, or focus the handle and use arrow keys to resize.</p>
           <button type="button" className="mt-3 text-sm underline" onClick={() => setCrop({ zoom: 1, x: 0.5, y: 0.5 })}>Reset crop</button>
-          <button type="button" className="mt-5 rounded-full bg-[#282536] px-5 py-3 text-white" onClick={cropPhoto}>Preview crop</button>
+          <button type="button" className="mt-5 rounded-full bg-[#282536] px-5 py-3 text-white" onClick={cropPhoto} disabled={!dimensions}>I’m happy with the crop — adjust lighting</button>
         </div>
       )}
-      {preview && (
+      {preview && !calibrating && (
         <div className="mt-8">
           <img src={preview} alt="Cropped portrait preview" className="mx-auto w-64 rounded-lg" />
-          <p className="mt-4 text-sm text-[#6d6870]">Photo prepared locally. Next, check the lighting before analysis.</p>
+          <p className="mt-4 text-sm text-[#6d6870]">Your crop is ready. Continue to lighting or go back and adjust it.</p>
           <div className="mt-4 flex flex-wrap gap-3">
-            <button type="button" className="rounded-full bg-[#282536] px-5 py-3 text-white" onClick={() => setCalibrating(true)}>Adjust lighting</button>
+            <button type="button" className="rounded-full bg-[#282536] px-5 py-3 text-white" onClick={() => setCalibrating(true)}>I’m happy with the crop — adjust lighting</button>
             <button type="button" className="rounded-full border border-[#bbb3b1] px-5 py-3" onClick={() => setPreview(null)}>Adjust crop</button>
           </div>
         </div>

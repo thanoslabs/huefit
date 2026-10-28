@@ -53,7 +53,8 @@ export default function ColourSampling({ image, onBack }: Props) {
   return (
     <section className="mx-auto w-full max-w-xl py-10" aria-label="Colour sampling">
       <button type="button" className="mb-6 text-sm underline" onClick={onBack}>← Adjust lighting</button>
-      <h2 className="text-3xl font-semibold">Sample your colours</h2>
+      <p className="text-sm font-medium text-[#756f78]">Step 3 of 3 · Sample colours</p>
+      <h2 className="mt-2 text-3xl font-semibold">Sample your colours</h2>
       <p className="mt-3 text-[#6d6870]">Select a sample point, then click a clear area of skin in the photo to reposition it. For keyboard use, adjust the selected point with the position sliders below. Avoid makeup, highlights and shadows. Automatic suggestions are optional and can always be adjusted.</p>
       <button type="button" disabled={detecting} onClick={() => void autoDetect()} className="mt-5 rounded-full bg-[#282536] px-5 py-3 text-white disabled:opacity-50">{detecting ? "Detecting…" : "Detect face automatically"}</button>
       <p role="status" className="mt-3 text-sm text-[#6d6870]">{detectionMessage}</p>

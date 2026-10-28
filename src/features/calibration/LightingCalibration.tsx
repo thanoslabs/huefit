@@ -64,7 +64,8 @@ export default function LightingCalibration({ source, onBack }: Props) {
   return (
     <section className="mx-auto w-full max-w-xl py-10" aria-label="Lighting calibration">
       <button type="button" className="mb-6 text-sm underline" onClick={onBack}>← Adjust crop</button>
-      <h2 className="text-3xl font-semibold">Adjust your lighting</h2>
+      <p className="text-sm font-medium text-[#756f78]">Step 2 of 3 · Adjust lighting</p>
+      <h2 className="mt-2 text-3xl font-semibold">Adjust your lighting</h2>
       <p className="mt-3 text-[#6d6870]">Automatic correction is an estimate. For best results, use even daylight and adjust the image until colours look natural.</p>
       {error && <p role="alert" className="mt-4 text-red-700">{error}</p>}
       {warnings.map((warning) => <p role="status" key={warning} className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{warning}</p>)}
@@ -85,7 +86,7 @@ export default function LightingCalibration({ source, onBack }: Props) {
         <button type="button" className="rounded-full border border-[#bbb3b1] px-5 py-3" onClick={() => { const original = originalRef.current; if (original) setSettings(estimateWhiteBalance(original)); }}>Auto estimate</button>
         <button type="button" className="rounded-full border border-[#bbb3b1] px-5 py-3" onClick={() => setSettings(DEFAULT_LIGHTING)}>Reset</button>
       </div>
-      <button type="button" className="mt-6 rounded-full bg-[#282536] px-5 py-3 text-white" onClick={() => { const original = originalRef.current; if (original) setAnalysisImage(applyLighting(original, settings)); }} disabled={!!error}>Continue to colour sampling</button>
+      <button type="button" className="mt-6 rounded-full bg-[#282536] px-5 py-3 text-white" onClick={() => { const original = originalRef.current; if (original) setAnalysisImage(applyLighting(original, settings)); }} disabled={!!error}>I’m happy with the lighting — sample colours</button>
       <p className="mt-4 text-sm text-[#6d6870]">Your original photo is preserved in memory. The resulting palette is an exploratory styling suggestion, not a validated diagnosis.</p>
     </section>
   );
