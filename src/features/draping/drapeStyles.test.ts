@@ -17,8 +17,8 @@ describe("virtual drape appearance", () => {
   });
 
   it("renders distinct illustrative fabric finishes", () => {
-    const linen = drapeStyle("#abcdef", { opacity: 50, coverage: 40, finish: "linen" });
-    const satin = drapeStyle("#abcdef", { opacity: 50, coverage: 40, finish: "satin" });
+    const linen = drapeStyle("#abcdef", { opacity: 50, coverage: 40, finish: "linen", direction: "bottom" });
+    const satin = drapeStyle("#abcdef", { opacity: 50, coverage: 40, finish: "satin", direction: "bottom" });
     expect(linen.opacity).toBe(0.5);
     expect(linen.height).toBe("40%");
     expect(linen.backgroundImage).not.toBe(satin.backgroundImage);
