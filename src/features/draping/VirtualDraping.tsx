@@ -1,7 +1,7 @@
+import { moveColour } from "./reorder";
 import { FABRICS } from "./fabrics";
 import { useEffect, useRef, useState } from "react";
 import type { Season } from "../seasons/seasons";
-import { initialDrapingPair } from "./draping";
 import { DEFAULT_DRAPE_SETTINGS, drapeStyle, type DrapeSettings, type FabricFinish } from "./drapeStyles";
 
 type Props = { image: ImageData; season: Season };
@@ -38,9 +38,8 @@ function Portrait({ image, colour, label, showDrape, settings }: { image: ImageD
 }
 
 export default function VirtualDraping({ image, season }: Props) {
-  const defaults = initialDrapingPair(season);
-  const [left, setLeft] = useState(defaults.left);
-  const [right, setRight] = useState(defaults.right);
+  const [colours, setColours] = useState<string[]>(() => [...season.palette]);
+  const dragIndex = useRef<number | null>(null);
   const [showDrape, setShowDrape] = useState(true);
   const [settings, setSettings] = useState<DrapeSettings>(DEFAULT_DRAPE_SETTINGS);
 
@@ -49,7 +48,7 @@ export default function VirtualDraping({ image, season }: Props) {
     <section className="mt-8" aria-label="Virtual draping comparison">
       <h3 className="text-xl font-semibold">Compare virtual drapes</h3>
       <p className="mt-2 text-sm text-[#6d6870]">
-        Compare two colours against the same portrait. Drapes are illustrative overlays, not clothing segmentation. Fabric finishes are visual approximations, not physically accurate simulations.
+        Compare every colour in your seasonal palette against the same portrait. Drapes are illustrative overlays, not clothing segmentation. Fabric finishes are visual approximations, not physically accurate simulations.
       </p>
       <label className="mt-4 flex items-center gap-2 text-sm">
         <input type="checkbox" checked={showDrape} onChange={(event) => setShowDrape(event.target.checked)} />
@@ -99,29 +98,39 @@ export default function VirtualDraping({ image, season }: Props) {
           Reset drape appearance
         </button>
       </div>
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <Portrait image={image} colour={left} label="Left portrait comparison" showDrape={showDrape} settings={settings} />
-        <Portrait image={image} colour={right} label="Right portrait comparison" showDrape={showDrape} settings={settings} />
-      </div>
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        {([
-          ["Left colour", left, setLeft],
-          ["Right colour", right, setRight],
-        ] as const).map(([label, value, update]) => (
-          <label key={label} className="block text-sm">
-            {label}
-            <select
-              className="mt-2 w-full rounded-lg border border-[#bbb3b1] bg-white p-2"
-              value={value}
-              onChange={(event) => update(event.target.value)}
-            >
-              {season.palette.map((hex) => (
-                <option key={hex} value={hex}>{hex}</option>
-              ))}
-            </select>
-          </label>
+      <p className="mt-4 text-sm text-[#6d6870]">All {colours.length} palette colours are shown. Drag cards to rearrange them, or use the arrow buttons with a keyboard.</p>
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {colours.map((colour, index) => (
+          <div
+            key={colour}
+            draggable
+            onDragStart={(event) => {
+              dragIndex.current = index;
+              event.dataTransfer.effectAllowed = "move";
+              event.dataTransfer.setData("text/plain", String(index));
+            }}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => {
+              event.preventDefault();
+              const from = dragIndex.current;
+              if (from !== null) setColours((current) => moveColour(current, from, index));
+              dragIndex.current = null;
+            }}
+            onDragEnd={() => { dragIndex.current = null; }}
+            className="min-w-0 rounded-xl border border-[#ded8d2] p-2"
+          >
+            <Portrait image={image} colour={colour} label={`Portrait with drape ${colour}`} showDrape={showDrape} settings={settings} />
+            <div className="mt-2 flex items-center justify-between gap-1">
+              <span className="text-xs text-[#6d6870]">Preview {index + 1}</span>
+              <div className="flex gap-1">
+                <button type="button" disabled={index === 0} aria-label={`Move ${colour} left`} className="rounded border px-2 py-1 text-sm disabled:opacity-30" onClick={() => setColours((current) => moveColour(current, index, index - 1))}>←</button>
+                <button type="button" disabled={index === colours.length - 1} aria-label={`Move ${colour} right`} className="rounded border px-2 py-1 text-sm disabled:opacity-30" onClick={() => setColours((current) => moveColour(current, index, index + 1))}>→</button>
+              </div>
+            </div>
+          </div>
         ))}
       </div>
+      <button type="button" className="mt-4 text-sm underline" onClick={() => setColours([...season.palette])}>Reset preview order</button>
     </section>
   );
 }
