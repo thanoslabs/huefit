@@ -1,6 +1,6 @@
 import { cropRect } from "./cropRect";
 import LightingCalibration from "../calibration/LightingCalibration";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent, type KeyboardEvent } from "react";
 import { cropToCanvas, validateDimensions, validateImage, type Crop } from "./image";
 
 type Props = { onClose: () => void };
@@ -15,6 +15,7 @@ export default function PhotoCapture({ onClose }: Props) {
   const imageRef = useRef<HTMLImageElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
+  const dragRef = useRef<{ mode: "move" | "resize"; x: number; y: number; crop: Crop } | null>(null);
 
   useEffect(() => {
     return () => {
@@ -38,6 +39,50 @@ export default function PhotoCapture({ onClose }: Props) {
     setCrop({ zoom: 1, x: 0.5, y: 0.5 });
     setDimensions(null);
     setUrl(URL.createObjectURL(file));
+  }
+
+  function beginCropDrag(event: PointerEvent<HTMLDivElement>, mode: "move" | "resize") {
+    if (!dimensions) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragRef.current = { mode, x: event.clientX, y: event.clientY, crop };
+  }
+
+  function updateCropDrag(event: PointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current;
+    const image = imageRef.current;
+    if (!drag || !dimensions || !image) return;
+    const bounds = image.getBoundingClientRect();
+    const dx = (event.clientX - drag.x) / bounds.width;
+    const dy = (event.clientY - drag.y) / bounds.height;
+    if (drag.mode === "move") {
+      const original = cropRect(dimensions.width, dimensions.height, drag.crop);
+      const left = Math.max(0, Math.min(dimensions.width - original.side, original.left + dx * dimensions.width));
+      const top = Math.max(0, Math.min(dimensions.height - original.side, original.top + dy * dimensions.height));
+      setCrop({ ...drag.crop, x: (left + original.side / 2) / dimensions.width, y: (top + original.side / 2) / dimensions.height });
+    } else {
+      const original = cropRect(dimensions.width, dimensions.height, drag.crop);
+      const side = Math.max(Math.min(dimensions.width, dimensions.height) / 3, Math.min(
+        Math.min(dimensions.width, dimensions.height),
+        original.side + Math.max(dx * dimensions.width, dy * dimensions.height),
+      ));
+      setCrop({ zoom: Math.min(dimensions.width, dimensions.height) / side, x: (original.left + side / 2) / dimensions.width, y: (original.top + side / 2) / dimensions.height });
+    }
+  }
+
+  function nudgeCrop(event: KeyboardEvent<HTMLDivElement>) {
+    if (!dimensions) return;
+    const offsets: Record<string, [number, number]> = {
+      ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1],
+    };
+    const offset = offsets[event.key];
+    if (!offset) return;
+    event.preventDefault();
+    const rect = cropRect(dimensions.width, dimensions.height, crop);
+    const step = event.shiftKey ? 0.05 : 0.01;
+    const left = Math.max(0, Math.min(dimensions.width - rect.side, rect.left + offset[0] * step * dimensions.width));
+    const top = Math.max(0, Math.min(dimensions.height - rect.side, rect.top + offset[1] * step * dimensions.height));
+    setCrop((current) => ({ ...current, x: (left + rect.side / 2) / dimensions.width, y: (top + rect.side / 2) / dimensions.height }));
   }
 
   function cropPhoto() {
@@ -89,8 +134,15 @@ export default function PhotoCapture({ onClose }: Props) {
             const rect = cropRect(dimensions.width, dimensions.height, crop);
             return (
               <div
-                aria-hidden="true"
-                className="pointer-events-none absolute border-2 border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.55)]"
+                role="group"
+                aria-label="Crop selection. Drag to move; use arrow keys to reposition."
+                tabIndex={0}
+                onKeyDown={nudgeCrop}
+                onPointerDown={(event) => beginCropDrag(event, "move")}
+                onPointerMove={updateCropDrag}
+                onPointerUp={() => { dragRef.current = null; }}
+                onPointerCancel={() => { dragRef.current = null; }}
+                className="absolute cursor-move touch-none border-2 border-white shadow-[0_0_0_9999px_rgba(0,0,0,0.55)] outline-offset-2 focus-visible:outline focus-visible:outline-4 focus-visible:outline-[#282536]"
                 style={{
                   left: `${(rect.left / dimensions.width) * 100}%`,
                   top: `${(rect.top / dimensions.height) * 100}%`,
@@ -98,21 +150,35 @@ export default function PhotoCapture({ onClose }: Props) {
                   height: `${(rect.side / dimensions.height) * 100}%`,
                 }}
               >
-                <div className="absolute inset-0 border border-black/30" />
+                <div aria-hidden="true" className="pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3">
+                  {Array.from({ length: 9 }, (_, index) => <div key={index} className="border border-white/35" />)}
+                </div>
+                <div
+                  role="slider"
+                  tabIndex={0}
+                  aria-label="Crop size"
+                  aria-valuemin={1}
+                  aria-valuemax={3}
+                  aria-valuenow={Number(crop.zoom.toFixed(2))}
+                  aria-valuetext={`${crop.zoom.toFixed(1)} times zoom`}
+                  onKeyDown={(event) => {
+                    if (event.key !== "ArrowUp" && event.key !== "ArrowRight" && event.key !== "ArrowDown" && event.key !== "ArrowLeft") return;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setCrop((current) => ({ ...current, zoom: Math.max(1, Math.min(3, current.zoom + (event.key === "ArrowUp" || event.key === "ArrowRight" ? 0.1 : -0.1))) }));
+                  }}
+                  onPointerDown={(event) => { event.stopPropagation(); beginCropDrag(event, "resize"); }}
+                  onPointerMove={(event) => { event.stopPropagation(); updateCropDrag(event); }}
+                  onPointerUp={(event) => { event.stopPropagation(); dragRef.current = null; }}
+                  onPointerCancel={(event) => { event.stopPropagation(); dragRef.current = null; }}
+                  className="absolute -bottom-2 -right-2 h-6 w-6 cursor-nwse-resize touch-none rounded-sm border-2 border-[#282536] bg-white focus-visible:outline focus-visible:outline-2"
+                />
               </div>
             );
           })()}
           </div>
-          <p className="mt-4 text-sm text-[#6d6870]">The bright square shows exactly what will be cropped. Adjust zoom and position to update it live.</p>
-          <label className="mt-4 block">Zoom: {crop.zoom.toFixed(1)}×
-            <input className="mt-2 w-full" type="range" min="1" max="3" step="0.1" value={crop.zoom} onChange={(e) => setCrop({ ...crop, zoom: Number(e.target.value) })} />
-          </label>
-          <label className="mt-3 block">Horizontal position
-            <input className="mt-2 w-full" type="range" min="0" max="1" step="0.01" value={crop.x} onChange={(e) => setCrop({ ...crop, x: Number(e.target.value) })} />
-          </label>
-          <label className="mt-3 block">Vertical position
-            <input className="mt-2 w-full" type="range" min="0" max="1" step="0.01" value={crop.y} onChange={(e) => setCrop({ ...crop, y: Number(e.target.value) })} />
-          </label>
+          <p className="mt-4 text-sm text-[#6d6870]">Drag the square to move the crop. Drag its bottom-right handle to resize. Keyboard: focus the square and use arrow keys to move, or focus the handle and use arrow keys to resize.</p>
+          <button type="button" className="mt-3 text-sm underline" onClick={() => setCrop({ zoom: 1, x: 0.5, y: 0.5 })}>Reset crop</button>
           <button type="button" className="mt-5 rounded-full bg-[#282536] px-5 py-3 text-white" onClick={cropPhoto}>Preview crop</button>
         </div>
       )}
