@@ -5,6 +5,9 @@ describe("fabric library", () => {
   it("provides unique named finishes", () => {
     expect(new Set(FABRICS.map((fabric) => fabric.id)).size).toBe(FABRICS.length);
   });
+  it("layers denim twill and warp textures", () => {
+    expect(fabricPattern("denim").match(/repeating-linear-gradient/g)?.length).toBe(2);
+  });
   it("uses flat colour for solid and a pattern for each texture", () => {
     expect(fabricPattern("solid")).toBe("none");
     for (const fabric of FABRICS.filter((item) => item.id !== "solid")) {
