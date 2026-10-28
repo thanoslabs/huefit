@@ -1,3 +1,4 @@
+import { FABRICS } from "./fabrics";
 import { useEffect, useRef, useState } from "react";
 import type { Season } from "../seasons/seasons";
 import { initialDrapingPair } from "./draping";
@@ -86,11 +87,10 @@ export default function VirtualDraping({ image, season }: Props) {
             className="mt-2 w-full rounded-lg border border-[#bbb3b1] bg-white p-2"
             onChange={(event) => setSettings((current) => ({ ...current, finish: event.target.value as FabricFinish }))}
           >
-            <option value="solid">Solid colour</option>
-            <option value="linen">Linen-inspired texture</option>
-            <option value="satin">Satin-inspired sheen</option>
+            {FABRICS.map((fabric) => <option key={fabric.id} value={fabric.id}>{fabric.label}</option>)}
           </select>
         </label>
+        <p className="text-xs text-[#6d6870] sm:col-span-2">Fabric textures are illustrative CSS patterns, not measured physical material properties.</p>
         <button
           type="button"
           className="text-left text-sm underline sm:col-span-2"
