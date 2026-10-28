@@ -27,6 +27,6 @@ Validation: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm ru
 - Reversible lighting calibration before analysis.
 - Virtual draping and side-by-side swatch/material comparisons.
 
-See [requirements](docs/requirements.md), [architecture](docs/architecture.md), and [backlog](docs/backlog.md).
+See [requirements](docs/requirements.md), [architecture](docs/architecture.md), [backlog](docs/backlog.md), and the [MVP release checklist](docs/release-checklist.md).
 
 Documentation source lives in [docs/](docs/). The former nebula-md Pages deployment has been replaced by the application deployment; documentation is not currently published as a separate site. Releases follow bare `X.Y.Z` SemVer tags.
