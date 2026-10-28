@@ -1,6 +1,6 @@
 import { moveColour } from "./reorder";
 import { FABRICS } from "./fabrics";
-import { useEffect, useRef, useState, type PointerEvent, type KeyboardEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent, type KeyboardEvent } from "react";
 import type { Season } from "../seasons/seasons";
 import { DEFAULT_DRAPE_SETTINGS, drapeStyle, drapePosition, type DrapeSettings, type FabricFinish, type DrapeDirection } from "./drapeStyles";
 
@@ -52,6 +52,37 @@ export default function VirtualDraping({ image, season }: Props) {
   const [colours, setColours] = useState<string[]>(() => [...season.palette]);
   const activeColour = useRef<string | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const previousPositions = useRef<Map<string, DOMRect> | null>(null);
+
+  function snapshotPositions() {
+    const positions = new Map<string, DOMRect>();
+    gridRef.current?.querySelectorAll<HTMLElement>("[data-palette-colour]").forEach((element) => {
+      const colour = element.dataset.paletteColour;
+      if (colour) positions.set(colour, element.getBoundingClientRect());
+    });
+    previousPositions.current = positions;
+  }
+
+  useLayoutEffect(() => {
+    const previous = previousPositions.current;
+    if (!previous || !gridRef.current) return;
+    previousPositions.current = null;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    gridRef.current.querySelectorAll<HTMLElement>("[data-palette-colour]").forEach((element) => {
+      const colour = element.dataset.paletteColour;
+      const old = colour ? previous.get(colour) : null;
+      if (!old) return;
+      const next = element.getBoundingClientRect();
+      const dx = old.left - next.left;
+      const dy = old.top - next.top;
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+      element.animate(
+        [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "translate(0, 0)" }],
+        { duration: 220, easing: "cubic-bezier(0.2, 0.8, 0.2, 1)" },
+      );
+    });
+  }, [colours]);
 
   function dragStart(event: PointerEvent<HTMLButtonElement>, colour: string) {
     if (event.pointerType === "mouse" && event.button !== 0) return;
@@ -68,6 +99,7 @@ export default function VirtualDraping({ image, season }: Props) {
     if (!(target instanceof HTMLElement)) return;
     const destination = target.dataset.paletteColour;
     if (!destination || destination === colour) return;
+    snapshotPositions();
     setColours((current) => {
       const from = current.indexOf(colour);
       const to = current.indexOf(destination);
@@ -83,6 +115,7 @@ export default function VirtualDraping({ image, season }: Props) {
   function reorderWithKeyboard(event: KeyboardEvent<HTMLButtonElement>, index: number) {
     if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
     event.preventDefault();
+    snapshotPositions();
     setColours((current) => moveColour(current, index, index + (event.key === "ArrowLeft" ? -1 : 1)));
   }
   const [showDrape, setShowDrape] = useState(true);
@@ -156,12 +189,12 @@ export default function VirtualDraping({ image, season }: Props) {
         </button>
       </div>
       <p className="mt-4 text-sm text-[#6d6870]">All {colours.length} palette colours are shown. Drag the grip on a preview to rearrange the palette. Other previews shift into place as you drag. Use left/right arrow keys on a focused grip for keyboard access.</p>
-      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div ref={gridRef} className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
         {colours.map((colour, index) => (
           <div
             key={colour}
             data-palette-colour={colour}
-            className={`relative min-w-0 rounded-xl border border-[#ded8d2] p-2 transition-[transform,background-color,box-shadow] duration-150 ${dragging === colour ? "z-10 scale-[1.03] bg-[#f3ede8] shadow-lg" : ""}`}
+            className={`relative min-w-0 rounded-xl border border-[#ded8d2] p-2 transition-[background-color,box-shadow,filter] duration-200 ${dragging === colour ? "z-10 bg-[#f3ede8] shadow-lg" : ""} ${dragging !== null && dragging !== colour ? "brightness-75" : ""}`}
           >
             <Portrait image={image} colour={colour} label={`Portrait with drape ${colour}`} showDrape={showDrape} settings={settings} />
             <span className="mt-2 block text-xs text-[#6d6870]">Preview {index + 1}</span>
@@ -180,7 +213,7 @@ export default function VirtualDraping({ image, season }: Props) {
           </div>
         ))}
       </div>
-      <button type="button" className="mt-4 text-sm underline" onClick={() => setColours([...season.palette])}>Reset preview order</button>
+      <button type="button" className="mt-4 text-sm underline" onClick={() => { snapshotPositions(); setColours([...season.palette]); }}>Reset preview order</button>
     </section>
   );
 }
