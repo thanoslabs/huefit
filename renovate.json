@@ -13,7 +13,7 @@
     "asdf",
     "docker-compose",
     "github-actions",
-    "gomod"
+    "npm"
   ],
   "packageRules": [
     {
