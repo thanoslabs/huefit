@@ -8,8 +8,10 @@ type Props = { colours: RGB[]; image: ImageData; onBack: () => void };
 export default function SeasonResults({ colours, image, onBack }: Props) {
   const analysis = rankSeasons(colours);
   const [override, setOverride] = useState<SeasonId | "">("");
+  const [comparison, setComparison] = useState<SeasonId | "">("");
   if (!analysis) return <p role="alert">Not enough valid colour samples. Please return to sampling.</p>;
   const selected = SEASONS.find((season) => season.id === override) ?? analysis.ranked[0].season;
+  const compared = SEASONS.find((season) => season.id === comparison) ?? analysis.ranked.find(({ season }) => season.id !== selected.id)?.season ?? selected;
   return (
     <section className="mx-auto w-full max-w-xl py-10" aria-label="Season exploration">
       <button type="button" className="mb-6 text-sm underline" onClick={onBack}>← Adjust samples</button>
@@ -37,6 +39,35 @@ export default function SeasonResults({ colours, image, onBack }: Props) {
           </button>
         ))}
       </div>
+      <section className="mt-8" aria-label="Compare seasonal palettes">
+        <h3 className="text-xl font-semibold">Compare seasonal palettes</h3>
+        <p className="mt-2 text-sm text-[#6d6870]">Explore the colours from two seasons side by side. Choose a comparison season independently of your selected match.</p>
+        <label htmlFor="comparison-season" className="mt-4 block text-sm font-medium">Compare against</label>
+        <select
+          id="comparison-season"
+          className="mt-2 w-full rounded-lg border border-[#bbb3b1] bg-white p-3"
+          value={comparison}
+          onChange={(event) => setComparison(event.target.value as SeasonId | "")}
+        >
+          <option value="">Next suggested season</option>
+          {SEASONS.map((season) => <option key={season.id} value={season.id}>{season.name}</option>)}
+        </select>
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          {[selected, compared].map((season, index) => (
+            <div key={index} className="min-w-0 rounded-xl border border-[#ded8d2] p-3">
+              <h4 className="mb-3 text-sm font-semibold">{season.name}</h4>
+              <div className="grid grid-cols-2 gap-2" aria-label={`${season.name} swatches`}>
+                {season.palette.map((hex) => (
+                  <div key={hex} className="min-w-0">
+                    <div className="h-12 rounded-md border border-black/10" style={{ backgroundColor: hex }} />
+                    <span className="mt-1 block text-xs">{hex}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
       <VirtualDraping key={selected.id} image={image} season={selected} />
       <p className="mt-6 text-sm text-[#6d6870]">The ranking is a starting point for visual comparison, not a confidence score. Compare different colours using the virtual drapes above.</p>
     </section>
