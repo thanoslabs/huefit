@@ -9,7 +9,7 @@ export default function App() {
     <main className="min-h-screen bg-[#f7f4ef] text-[#282536]">
       <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-8 sm:px-10">
         <header className="flex items-center justify-between">
-          <a className="text-2xl font-semibold tracking-tight" href="/" aria-label="HueFit home">huefit<span className="text-[#b87868]">.</span></a>
+          <a className="text-2xl font-semibold tracking-tight" href={import.meta.env.BASE_URL} aria-label="HueFit home">huefit<span className="text-[#b87868]">.</span></a>
           <span className="text-xs font-medium uppercase tracking-[0.2em] text-[#756f78]">Private by design</span>
         </header>
         {capturing ? <PhotoCapture onClose={() => setCapturing(false)} /> : (
@@ -21,7 +21,7 @@ export default function App() {
               {colours.map((colour) => <span key={colour} className="h-12 w-9 rounded-lg sm:h-16 sm:w-12" style={{ backgroundColor: colour }} />)}
             </div>
             <button type="button" className="mt-10 rounded-full bg-[#282536] px-7 py-3 text-white" onClick={() => setCapturing(true)}>Get started with a photo</button>
-            <p className="mt-4 text-sm text-[#716b70]">Analysis and lighting calibration are coming soon.</p>
+            <p className="mt-4 text-sm text-[#716b70]">Your photo stays on this device. Results are exploratory and can be adjusted.</p>
           </section>
         )}
         <footer className="text-center text-xs text-[#8b8589]">No accounts. No uploads to a server. Just your colours.</footer>

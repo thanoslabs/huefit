@@ -7,14 +7,14 @@
 
 **Live application:** https://thanoslabs.github.io/huefit/ (available after Pages is enabled and the deployment succeeds).\n\n**HueFit** is a privacy-first, browser-only personal colour analysis app. Discover seasonal palettes, calibrate lighting, and compare clothing colours and fabrics without sending your photo to a server.
 
-> Status: initial application shell. Photo analysis, calibration, draping and export are planned, not implemented yet.
+> Status: browser-local photo capture, calibration, face sampling, exploratory 12-season ranking and virtual draping are implemented. Palette export and deeper comparisons are in progress.
 
 ## Local development
 
 Use the Node version pinned in `.tool-versions`.
 
 ```sh
-npm install
+npm install --no-package-lock
 npm run dev
 ```
 
