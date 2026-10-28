@@ -1,3 +1,4 @@
+import SeasonResults from "../seasons/SeasonResults";
 import { detectFaceSamplingPoints } from "./landmarks";
 import { useEffect, useRef, useState } from "react";
 import { DEFAULT_POINTS, rgbToHex, sampleSkin, type Point, type SampleResult } from "./sampling";
@@ -8,6 +9,7 @@ export default function ColourSampling({ image, onBack }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [points, setPoints] = useState<Point[]>(DEFAULT_POINTS);
   const [selected, setSelected] = useState(0);
+  const [showResults, setShowResults] = useState(false);
   const [detecting, setDetecting] = useState(false);
   const [detectionMessage, setDetectionMessage] = useState("Choose automatic detection or position points manually.");
   const samples: (SampleResult | null)[] = points.map((point) => sampleSkin(image, point));
@@ -46,6 +48,8 @@ export default function ColourSampling({ image, onBack }: Props) {
     setPoints((current) => current.map((point, index) => index === selected ? { x, y } : point));
   }
 
+  if (showResults) return <SeasonResults colours={samples.filter((sample): sample is SampleResult => sample !== null).map((sample) => sample.color)} onBack={() => setShowResults(false)} />;
+
   return (
     <section className="mx-auto w-full max-w-xl py-10" aria-label="Colour sampling">
       <button type="button" className="mb-6 text-sm underline" onClick={onBack}>← Adjust lighting</button>
@@ -74,7 +78,8 @@ export default function ColourSampling({ image, onBack }: Props) {
           </div>
         ))}
       </div>
-      <p className="mt-6 text-sm text-[#6d6870]">These are sampled pixel colours, not a seasonal classification. Results depend on lighting and the regions selected.</p>
+      <p className="mt-6 text-sm text-[#6d6870]">These are sampled pixel colours. Results depend on lighting and the regions selected.</p>
+      <button type="button" disabled={samples.every((sample) => sample === null)} className="mt-5 rounded-full bg-[#282536] px-5 py-3 text-white disabled:opacity-50" onClick={() => setShowResults(true)}>Explore seasonal palettes</button>
     </section>
   );
 }
