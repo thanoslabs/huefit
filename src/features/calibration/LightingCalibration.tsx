@@ -42,7 +42,7 @@ export default function LightingCalibration({ source, onBack }: Props) {
     const ctx = canvas?.getContext("2d");
     if (!original || !ctx) return;
     ctx.putImageData(showOriginal ? original : applyLighting(original, settings), 0, 0);
-  }, [settings, showOriginal]);
+  }, [settings, showOriginal, analysisImage]);
 
   function control(label: string, key: keyof LightingSettings, min: number, max: number, step: number) {
     return (
